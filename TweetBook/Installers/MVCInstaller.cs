@@ -11,6 +11,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using TweetBook.Options;
+using TweetBook.Services.Identity;
 
 namespace TweetBook.Installers
 {
@@ -18,15 +19,27 @@ namespace TweetBook.Installers
     {
         public void InstallService(IServiceCollection services, IConfiguration configuration)
         {
-          //  var jwtSettings = new JwtSettings();
-           // configuration.Bind(nameof(JwtSettings), jwtSettings);
+            var jwtSettings = new JwtSettings();
+            configuration.Bind(nameof(JwtSettings), jwtSettings);
 
-         //   services.AddSingleton(jwtSettings);
-
+            services.AddSingleton(jwtSettings);
+            services.AddScoped<IIdentityService, IdentityService>();
 
             services.AddControllersWithViews();
             services.AddRazorPages();
-         /*   services.AddAuthentication(x =>
+
+            var tokenValidationParameter = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtSettings.secret)),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                RequireExpirationTime = false,
+                ValidateLifetime = true
+            };
+
+            services.AddSingleton(tokenValidationParameter);
+            services.AddAuthentication(x =>
             {
                 x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 x.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -35,22 +48,14 @@ namespace TweetBook.Installers
             .AddJwtBearer(x =>
             {
                 x.SaveToken = true;
-                x.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtSettings.secret)),
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                    RequireExpirationTime = false,
-                    ValidateLifetime = true
-                };
+                x.TokenValidationParameters = tokenValidationParameter;
             });
-            */
+            
             services.AddSwaggerGen(x =>
             {
                 x.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "TweetBook API", Version = "v1" });
 
-             /*   x.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                x.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     Description = "JWT authorization header using the bearer scheme",
                     Name = "Authorization",
@@ -73,7 +78,7 @@ namespace TweetBook.Installers
                         },
                         new List<string>()
                     }
-                });*/
+                });
             });
         }
     }

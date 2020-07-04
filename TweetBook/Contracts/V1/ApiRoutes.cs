@@ -19,5 +19,13 @@ namespace TweetBook.Contracts
             public const string Delete = Root + "/posts/{id}";
             public const string Create = Root + "/posts";
         }
+
+        public static class Identity    
+        {
+            public const string Login = Root + "/identity/login";
+            public const string Refresh = Root + "/identity/refresh";
+            public const string Register = Root + "/identity/register";
+
+        }
     }
 }

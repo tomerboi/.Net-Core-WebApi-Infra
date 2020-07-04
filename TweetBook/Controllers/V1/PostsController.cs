@@ -1,16 +1,18 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using TweetBook.Contracts;
 using TweetBook.Contracts.V1.Requests;
 using TweetBook.Contracts.V1.Response;
 using TweetBook.Domain;
+using TweetBook.Extensions;
 using TweetBook.Services;
 
 namespace TweetBook.Controllers
 {
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class PostsController : Controller
     {
         private readonly IPostService _postService;
@@ -38,6 +40,12 @@ namespace TweetBook.Controllers
         [HttpPut(ApiRoutes.Posts.Update)]
         public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdatePostRequest updatePostRequest)
         {
+            var userOwner = await _postService.UserOwnesPostAsync(id, HttpContext.GetUserId());
+            if (!userOwner)
+            {
+                return BadRequest(new  {Error = "You dont owns this post" });
+            }
+
             var post = new Post
             {
                 Id = id,
@@ -54,6 +62,12 @@ namespace TweetBook.Controllers
         [HttpDelete(ApiRoutes.Posts.Delete)]
         public async Task<IActionResult> Delete([FromRoute] Guid id)
         {
+            var userOwner = await _postService.UserOwnesPostAsync(id, HttpContext.GetUserId());
+            if (!userOwner)
+            {
+                return BadRequest(new { Error = "You dont owns this post" });
+            }
+
             var deleted = await _postService.DeletePostAsync(id);
             if (!deleted)
                 return NotFound();
@@ -64,7 +78,11 @@ namespace TweetBook.Controllers
         [HttpPost(ApiRoutes.Posts.Create)]
         public async Task<IActionResult> Create([FromBody] CreatePostRequest postRequest)
         {
-            var post = new Post { Name = postRequest.Name }; 
+            var post = new Post 
+            {
+                Name = postRequest.Name,
+                UserId = HttpContext.GetUserId()
+            }; 
 
             await _postService.CreatePostAsync(post);
 
